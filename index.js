@@ -1,6 +1,6 @@
 /**
- * بوت واتساب متكامل - إصدار مستقر
- * تم إضافة ميزة المنشن الجماعي (.منشن / .الكل)
+ * بوت واتساب متكامل - إصدار خاص
+ * تم تعديل ميزة المنشن لتكون للمطور فقط، مخفية، وبكلمة "منشن" فقط بدون نقطة
  */
 
 const { 
@@ -23,7 +23,7 @@ const port = 5000;
 
 // إعدادات البوت
 const settings = {
-    phoneNumber: "201066706529", // رقمك
+    phoneNumber: "201066706529", // رقمك (المسموح له فقط باستخدام المنشن)
     ownerName: "Mohamed Kheder",
     botName: "My Super Bot"
 };
@@ -93,29 +93,37 @@ async function startBot() {
 
             const text = (m.message.conversation || m.message.extendedTextMessage?.text || "").trim();
             const remoteJid = m.key.remoteJid;
+            const sender = m.key.participant || m.key.remoteJid; // معرفة من المرسل
 
             // 1️⃣ أمر القائمة
             if (text === '.اوامر' || text === '.menu') {
-                const menu = `🤖 *قائمة ${settings.botName}*\n\n1️⃣ .بنج\n2️⃣ .منشن (أو .الكل)\n3️⃣ .المطور\n\n👑 بواسطة: ${settings.ownerName}`;
+                const menu = `🤖 *قائمة ${settings.botName}*\n\n1️⃣ .بنج\n2️⃣ منشن (للمطور فقط)\n3️⃣ .المطور\n\n👑 بواسطة: ${settings.ownerName}`;
                 await sock.sendMessage(remoteJid, { text: menu }, { quoted: m });
             } 
             // 2️⃣ أمر بنج
             else if (text === '.بنج') {
                 await sock.sendMessage(remoteJid, { text: '🚀 البوت يعمل بسرعة الصاروخ!' }, { quoted: m });
             }
-            // 3️⃣ أمر المنشن الجماعي (الجديد)
-            else if (text === '.منشن' || text === '.الكل') {
+            // 3️⃣ أمر المنشن الجماعي (خاص، مخفي، وبدون نقطة)
+            else if (text === 'منشن') { // 👈 التعديل هنا: كلمة منشن فقط
+                
+                // 🔒 التحقق: هل المرسل هو صاحب الرقم الموجود في الإعدادات؟
+                if (!sender.includes(settings.phoneNumber)) {
+                    // إذا لم يكن المطور، نتجاهل الرسالة تماماً
+                    return; 
+                }
+
                 // التأكد أن الأمر داخل مجموعة
                 if (remoteJid.endsWith('@g.us')) {
                     const groupMetadata = await sock.groupMetadata(remoteJid);
                     const participants = groupMetadata.participants.map(p => p.id);
                     
-                    const mentionText = '📣 *منشن جماعي للكل* 📣\n\n' + 
-                                      participants.map(p => `@${p.split('@')[0]}`).join(' ');
+                    // 👻 نص قصير جداً (المنشن المخفي)
+                    const mentionText = 'منشن للجميع: 📣'; 
 
                     await sock.sendMessage(remoteJid, {
                         text: mentionText,
-                        mentions: participants
+                        mentions: participants // ✅ إرسال المنشن للكود دون كتابة الأسماء
                     }, { quoted: m });
                 } else {
                     await sock.sendMessage(remoteJid, { text: '⚠️ هذا الأمر يعمل فقط داخل المجموعات!' }, { quoted: m });
@@ -143,3 +151,4 @@ app.listen(port, '0.0.0.0', () => {
     console.log(`Server is running on port ${port}`);
     startBot();
 });
+                
